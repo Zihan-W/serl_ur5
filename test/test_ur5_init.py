@@ -1,27 +1,37 @@
 import numpy as np
 from rtde_control import RTDEControlInterface
+from rtde_receive import RTDEReceiveInterface
 
-def test_ur5_ini():
+def test_ur5_control(robot_ip):
     # 创建UR控制接口
-    ur_control = RTDEControlInterface("192.168.1.101")
+    ur_control = RTDEControlInterface(robot_ip)
+    ur_receive = RTDEReceiveInterface(robot_ip)
+    pos = ur_receive.getActualTCPPose()
+
     
     try:
         # 设置负载和TCP
         ur_control.setPayload(0.5, [0, 0, 0])
         ur_control.setTcp([0, 0, 0.23, 0, 0, np.pi-0.2617994])
 
+        # target_pos = [-0.2317, -0.2508, 0.2944, -0.5032, 0.8638, 0.0245, 0.0009] # not safe
+        target_pos = [-0.21, 0.3, 0.2, -0.001, 3.12, 0.04]
+
         # 初始关节角度
         tool_ini_joints = [0.5428823828697205, -1.9081628958331507, 1.6074042320251465,
                           -1.2644203344928187, -1.6236584822284144, 1.3247456550598145]
         
         # 运动参数
-        acceleration = 0.8  # rad/s^2 
+        acceleration = 0.8  # rad/s^2
         velocity = 0.4     # rad/s
         
+        # ur_control.moveL(target_pos, velocity/2, acceleration/2)
+
         # 移动到初始位置
         ur_control.moveJ(tool_ini_joints, velocity, acceleration)
         
         print("机器人初始化成功!")
+        print(pos)
         
     except Exception as e:
         print(f"初始化失败: {str(e)}")
@@ -30,5 +40,13 @@ def test_ur5_ini():
         # 断开连接
         ur_control.disconnect()
         
+def test_ur5_receive(robot_ip):
+    rtde_r = RTDEReceiveInterface(robot_ip)
+    actual_q = rtde_r.getActualQ()
+    actual_tcp_pose = rtde_r.getActualTCPPose()
+    print(actual_q)
+    print(actual_tcp_pose)
+
 if __name__ == "__main__":
-    test_ur5_ini()
+    robot_ip = "192.168.1.101"
+    test_ur5_control(robot_ip)

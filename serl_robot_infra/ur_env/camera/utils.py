@@ -94,7 +94,7 @@ class PointCloudFusion:
         t_finetuned = np.zeros((2, *self.t1.shape))
         t_finetuned[0, ...] = self.t1
         t_finetuned[1, ...] = self.t2
-        with open("PointCloudFusionFinetuned.npy", "wb") as f:
+        with open("/home/wzh/serl_ur5/serl_robot_infra/ur_env/camera/PointCloudFusionFinetuned.npy", "wb") as f:
             np.save(f, t_finetuned)
 
     def get_voxelgrid_shape(self):
@@ -102,9 +102,9 @@ class PointCloudFusion:
 
     def load_finetuned(self):
         from os.path import exists
-        if not exists("/home/nico/real-world-rl/spacemouse_tests/PointCloudFusionFinetuned.npy"):
+        if not exists("/home/wzh/serl_ur5/serl_robot_infra/ur_env/camera/PointCloudFusionFinetuned.npy"):
             return False
-        with open("/home/nico/real-world-rl/spacemouse_tests/PointCloudFusionFinetuned.npy", "rb") as f:
+        with open("/home/wzh/serl_ur5/serl_robot_infra/ur_env/camera/PointCloudFusionFinetuned.npy", "rb") as f:
             t_finetuned = np.load(f)
             self.t1 = t_finetuned[0, ...]
             self.t2 = t_finetuned[1, ...]

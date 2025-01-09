@@ -57,7 +57,7 @@ ur_env/spacemouse/__init__.py
 ur_env/spacemouse/spacemouse_expert.py
 ur_env/spacemouse/spacemouse_test.py
 ur_env/utils/__init__.py
-ur_env/utils/gripper.py
 ur_env/utils/real_time_plotter.py
 ur_env/utils/rotations.py
+ur_env/utils/serial_gripper.py
 ur_env/utils/vacuum_gripper.py

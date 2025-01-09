@@ -21,7 +21,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
 
     def __init__(
         self,
-        action_scale: np.ndarray = np.asarray([0.1, 1]),
+        action_scale: np.ndarray = np.asarray([0.1, 1, 1]),
         seed: int = 0,
         control_dt: float = 0.02,
         physics_dt: float = 0.002,
@@ -179,7 +179,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
             truncated: bool,
             info: dict[str, Any]
         """
-        x, y, z, grasp = action
+        x, y, z, yaw, pitch, roll, grasp = action
 
         # Set the mocap position.
         pos = self._data.mocap_pos[0].copy()
@@ -187,9 +187,15 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         npos = np.clip(pos + dpos, *_CARTESIAN_BOUNDS)
         self._data.mocap_pos[0] = npos
 
+        # Set orientation using yaw, pitch, roll
+        current_quat = self._data.mocap_quat[0]
+        delta_orientation = np.array([yaw, pitch, roll]) * self._action_scale[1]
+        new_quat = self._update_orientation(current_quat, delta_orientation)
+        self._data.mocap_quat[0] = new_quat
+
         # Set gripper grasp.
         g = self._data.ctrl[self._gripper_ctrl_id] / 255
-        dg = grasp * self._action_scale[1]
+        dg = grasp * self._action_scale[2]
         ng = np.clip(g + dg, 0.0, 1.0)
         self._data.ctrl[self._gripper_ctrl_id] = ng * 255
 
@@ -212,6 +218,14 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         terminated = self.time_limit_exceeded()
 
         return obs, rew, terminated, False, {}
+
+    def _update_orientation(self, current_quat, delta_orientation):
+        # 这里可以实现从欧拉角（yaw, pitch, roll）到四元数的转换
+        # 例如使用 scipy 的 Rotation 模块
+        from scipy.spatial.transform import Rotation as R
+        r = R.from_euler('xyz', delta_orientation)
+        new_quat = r * R.from_quat(current_quat)
+        return new_quat.as_quat()
 
     def render(self):
         rendered_frames = []

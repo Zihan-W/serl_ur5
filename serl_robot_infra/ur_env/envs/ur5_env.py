@@ -127,6 +127,7 @@ class UR5Env(gym.Env):
         self.resetQ = config.RESET_Q
         self.curr_reset_pose = np.zeros((7,), dtype=np.float32)
 
+        self.start_pos = np.zeros((7,), dtype=np.float32)
         self.curr_pos = np.zeros((7,), dtype=np.float32)
         self.curr_vel = np.zeros((6,), dtype=np.float32)
         self.curr_Q = np.zeros((6,), dtype=np.float32)
@@ -246,7 +247,8 @@ class UR5Env(gym.Env):
             self.init_cameras(config.REALSENSE_CAMERAS)
             self.img_queue = queue.Queue()
             if self.camera_mode in ["pointcloud"]:
-                self.displayer = PointCloudDisplayer()  # o3d displayer cannot be threaded :/
+                pass
+                # self.displayer = PointCloudDisplayer()  # o3d displayer cannot be threaded :/
             else:
                 self.displayer = ImageDisplayer(self.img_queue)
                 self.displayer.start()
@@ -298,11 +300,17 @@ class UR5Env(gym.Env):
 
         # position
         next_pos = self.curr_pos.copy()
-        next_pos[:3] = next_pos[:3] + action[:3] * self.action_scale[0]
 
+        # next_pos[:3] = next_pos[:3] + action[:3] * self.action_scale[0]
+        # next_pos[3:] = (
+        #         R.from_mrp(action[3:6] * self.action_scale[1] / 4.) * R.from_quat(next_pos[3:])
+        # ).as_quat()             # c * r  --> applies c after r
+        
+        next_pos[:3] = action[:3] * self.action_scale[0]
         next_pos[3:] = (
                 R.from_mrp(action[3:6] * self.action_scale[1] / 4.) * R.from_quat(next_pos[3:])
         ).as_quat()             # c * r  --> applies c after r
+        print("next_pose:",next_pos)
 
         gripper_action = action[6] * self.action_scale[2]
 
@@ -339,16 +347,21 @@ class UR5Env(gym.Env):
         implemented each subclass for the specific task.
         Should override this method if custom reset procedure is needed.
         """
-
+        
         # Perform Carteasian reset
-        reset_Q = np.zeros((6))
-        if self.resetQ.shape == (1, 6):
-            reset_Q[:] = self.resetQ.copy()
-        elif self.resetQ.shape[1] == 6 and self.resetQ.shape[0] > 1:
-            reset_Q[:] = self.resetQ[0, :].copy()  # make random guess
-            self.resetQ[:] = np.roll(self.resetQ, -1, axis=0)  # roll one (not random)
+        reset_Q = np.zeros(6)
+        
+        # 修改这部分代码来正确处理 resetQ
+        if isinstance(self.resetQ, np.ndarray):
+            if len(self.resetQ.shape) == 1:  # 一维数组
+                reset_Q[:] = self.resetQ.copy()
+            elif len(self.resetQ.shape) == 2 and self.resetQ.shape[1] == 6:  # 二维数组
+                reset_Q[:] = self.resetQ[0, :].copy()  # 使用第一个位置
+                self.resetQ = np.roll(self.resetQ, -1, axis=0)  # 循环移动
+            else:
+                raise ValueError(f"无效的 resetQ 维度: {self.resetQ.shape}")
         else:
-            raise ValueError(f"invalid resetQ dimension: {self.resetQ.shape}")
+            raise ValueError(f"resetQ 必须是 numpy 数组，当前类型: {type(self.resetQ)}")
 
         self._send_reset_command(reset_Q)
 
@@ -554,7 +567,7 @@ class UR5Env(gym.Env):
             # voxel_grid = np.sum(np.reshape(voxel_grid, (vs[0], 2, vs[1], 2, vs[2], 2)), axis=(1, 3, 5))
             images["wrist_pointcloud"] = voxel_grid.astype(np.uint8)
 
-            self.displayer.display(voxel_indices)
+            # self.displayer.display(voxel_indices)
 
         # self.recording_frames.append(
         #     np.concatenate([image for key, image in display_images.items() if "full" in key], axis=0)
@@ -577,17 +590,46 @@ class UR5Env(gym.Env):
         pc.points = o3d.utility.Vector3dVector(fused)
         o3d.visualization.draw_geometries([pc])
 
-        # get samples
+
+        # # 定义固定的四个动作
+        # fixed_actions = [
+        #     [-0.6,  -0.2, 0.2, 0.0, 0.0, 1.0, 0.0],  # 第一个点
+        #     [-0.1, -0.6, 0.2, 0.0, 0.0, 1.0, 0.0],  # 第二个点
+        #     [ 0.2, -0.2, 0.2, 0.0, 0.0, 1.0, 0.0],  # 第三个点
+        #     [ -0.3,  0.3, 0.2, 0.0, 0.0, 1.0, 0.0],  # 第四个点
+        # ]
+
+        # 定义固定的四个动作
+        fixed_actions = [
+            [-0.1,  -0.1, 0.0, 0.0, 0.0, 1.0, 0.0],  # 第一个点
+            [0.1, 0.1, 0.0, 0.0, 0.0, 1.0, 0.0],  # 第二个点
+            [-0.1, -0.1, 0.0, 0.0, 0.0, 1.0, 0.0],  # 第三个点
+            [ 0.1,  0.1, 0.0, 0.0, 0.0, 1.0, 0.0],  # 第四个点
+        ]
+
         for i in range(num_samples):
-            # action = [np.sin(i * np.pi / 10.), np.cos(i * np.pi / 10.), 0., -.3 * np.sin(i * np.pi / 10.),
-            #           -.3 * np.cos(i * np.pi / 10.), 0., 0.]
-            action = [-1. if i % 4 < 2 else 1, -1. if i % 4 in [1, 2] else 1, 0., 0., 0., 1., 0.]
-
-            print(action)
+            action = fixed_actions[i % 4]  # 从固定列表中取出动作
+            print(f"Executing action {i}: {action}")
+            
+            # 执行动作，采集点云
             obs, reward, done, truncated, _ = self.step(np.array(action))
-            time.sleep(0.1)
+            time.sleep(0.1)  # 延迟，用于稳定动作和采样
 
+            # 保存采集到的点云数据到标定队列
             self.calibration_thread.append_backlog(*self.pointcloud_fusion.get_original_pcds())
+
+        # # get samples
+        # for i in range(num_samples):
+        #     # action = [np.sin(i * np.pi / 10.), np.cos(i * np.pi / 10.), 0., -.3 * np.sin(i * np.pi / 10.),
+        #     #           -.3 * np.cos(i * np.pi / 10.), 0., 0.]
+        #     # action = [-1. if i % 4 < 2 else 1, -1. if i % 4 in [1, 2] else 1, 0., 0., 0., 1., 0.]
+        #     action = [-1. if i % 4 < 2 else 1, -1. if i % 4 in [1, 2] else 1, 0., 0., 0., 1., 0.]
+
+        #     print(action)
+        #     obs, reward, done, truncated, _ = self.step(np.array(action))
+        #     time.sleep(0.1)
+
+        #     self.calibration_thread.append_backlog(*self.pointcloud_fusion.get_original_pcds())
 
         # calibrate()
         self.controller.stop()

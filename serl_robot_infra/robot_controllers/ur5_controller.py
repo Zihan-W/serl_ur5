@@ -51,8 +51,9 @@ class UrImpedanceController(threading.Thread):
         self.kd = kd
         self.gripper_timeout = {"timeout": config.GRIPPER_TIMEOUT, "last_grip": time.monotonic() - 1e6}
         self.verbose = verbose
-        self.do_plot = plot
+        self.do_plot = False
 
+        self.start_pos = np.zeros((6,), dtype=np.float32)
         self.target_pos = np.zeros((7,), dtype=np.float32)  # new as quat to avoid +- problems with axis angle repr.
         self.target_grip = np.zeros((1,), dtype=np.float32)
         self.curr_pos = np.zeros((7,), dtype=np.float32)
@@ -89,29 +90,12 @@ class UrImpedanceController(threading.Thread):
             f.write("reset\n")
         self.second_console = open("/tmp/console2.txt", 'a')
 
-    def ur5_init(self):
-        # 设置负载和TCP
-        self.ur_control.setPayload(0.5, [0, 0, 0])
-        self.ur_control.setTcp([0, 0, 0.23, 0, 0, np.pi-0.2617994])
-
-        # 初始关节角度
-        tool_ini_joints = [0.5428823828697205, -1.9081628958331507, 1.6074042320251465, 
-                          -1.2644203344928187, -1.6236584822284144, 1.3247456550598145]
-        
-        # 运动参数
-        acceleration = 0.8  # rad/s^2
-        velocity = 0.4     # rad/s
-        
-        # 移动到初始位置
-        self.ur_control.moveJ(tool_ini_joints, velocity, acceleration)
-
-
     def start(self):
         super().start()
         if self.verbose:
             print(f"[RIC] Controller process spawned at {self.native_id}")
 
-    def print(self, msg, both=False):
+    def print(self, msg, both=True):
         self.second_console.write(f'{datetime.datetime.now()} --> {msg}\n')
         if both:
             print(msg)
@@ -120,6 +104,9 @@ class UrImpedanceController(threading.Thread):
         print(self.robot_ip)
         self.ur_control = RTDEControlInterface(self.robot_ip)
         self.ur_receive = RTDEReceiveInterface(self.robot_ip)
+        self.ur_control.setPayload(0.5, [0, 0, 0])
+        self.ur_control.setTcp([0, 0, 0.23, 0, 0, np.pi-0.2617994])
+
         if gripper:
             # self.robotiq_gripper = VacuumGripper(self.robot_ip)
             # await self.robotiq_gripper.connect()
@@ -176,7 +163,7 @@ class UrImpedanceController(threading.Thread):
             self.target_pos[:3] = target_pos[:3]
             self.target_pos[3:] = target_orientation
 
-            self.print(f"target: {self.target_pos}")
+            # self.print(f"target: {self.target_pos}")
 
     def set_reset_Q(self, reset_Q: np.ndarray):
         with self.lock:
@@ -379,15 +366,20 @@ class UrImpedanceController(threading.Thread):
         else:
             self._reset.clear()
 
+    def get_start_pose(self):
+        """获取起始姿态"""
+        return self.start_pos.copy()
+
     async def run_async(self):
         await self.start_ur_interfaces(gripper=True)
 
-        self.ur_control.forceModeSetDamping(self.fm_damping)  # less damping = Faster
+        # self.ur_control.forceModeSetDamping(self.fm_damping)  # less damping = Faster
 
         try:
             dt = 1. / self.frequency
             self.ur_control.zeroFtSensor()
             await self._update_robot_state()
+            self.start_pos = pose2rotvec(self.curr_pos.copy())
             self.target_pos = self.curr_pos.copy()
             print(f"[RIC] target position set to curr pos: {self.target_pos}")
 
@@ -398,6 +390,7 @@ class UrImpedanceController(threading.Thread):
                     await self._update_robot_state()
                     await self._go_to_reset_pose()
 
+                # exit()
                 t_now = time.monotonic()
 
                 # update robot state and check for truncation
@@ -411,7 +404,7 @@ class UrImpedanceController(threading.Thread):
                 # calculate force
                 force = self._calculate_force()
                 # print(self.target_pos, self.curr_pos, force)
-                self.print(f" p:{self.curr_pos}   f:{self.curr_force_lowpass}   gr:{self.gripper_state}")  # log to file
+                # self.print(f" p:{self.curr_pos}   f:{self.curr_force_lowpass}   gr:{self.gripper_state}")  # log to file
 
                 # send command to robot
                 t_start = self.ur_control.initPeriod()
@@ -425,11 +418,11 @@ class UrImpedanceController(threading.Thread):
                 if not fm_successful:  # truncate if the robot ends up in a singularity
                     await self.restart_ur_interface()
                     await self._go_to_reset_pose()
-
+                
                 if self.serial_gripper:
                     # await self.send_gripper_command()
-                    self.serial_gripper.gripper_control()
-
+                    self.serial_gripper.gripper_control(self.target_grip[0])
+                
                 self.ur_control.waitPeriod(t_start)
 
                 a = dt - (time.monotonic() - t_now)
@@ -442,7 +435,7 @@ class UrImpedanceController(threading.Thread):
             if self.verbose:
                 print(f"[RTDEPositionalController] >dt: {self.err}     <dt (good): {self.noerr}")
             # mandatory cleanup
-            self.ur_control.forceModeStop()
+            # self.ur_control.forceModeStop()
 
             # release gripper
             if self.serial_gripper:
@@ -452,7 +445,8 @@ class UrImpedanceController(threading.Thread):
 
             # move to real home
             pi = 3.1415
-            reset_Q = [0, -pi / 2., pi / 2., -pi / 2., -pi / 2., 0.]
+            reset_Q = [0.5428823828697205, -1.9081628958331507, 1.6074042320251465,
+                          -1.2644203344928187, -1.6236584822284144, 1.3247456550598145]
             self.ur_control.moveJ(reset_Q, speed=1., acceleration=0.8)
 
             # terminate

@@ -1,16 +1,49 @@
 import gymnasium as gym
 import numpy as np
 from agentlace import action
+import zmq
 
 from ur_env.spacemouse.spacemouse_expert import SpaceMouseExpert
 import time
 from scipy.spatial.transform import Rotation as R
 
 from ur_env.utils.rotations import quat_2_euler, quat_2_mrp
+from ur_env.utils.socket_server import SocketServer
 
 ROT90 = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
 ROT_GENERAL = np.array([np.eye(3), ROT90, ROT90 @ ROT90, ROT90.transpose()])
 
+class Quest3Wrapper(gym.ActionWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.gripper_enabled = True
+        self.controller = self.env.controller
+        self.socket_server = SocketServer(self.controller.start_pos, ip_port=('169.254.91.200', 34567))
+        # context = zmq.Context()
+        # self.sock = context.socket(zmq.PULL)
+        # self.sock.connect(f"tcp://{169.254.91.216}:{34566}")
+    
+    def action(self, action) -> np.ndarray:
+        quest3_action, button_x, button_a = self.socket_server.get_action()
+        if self.gripper_enabled:
+            quest3_action = np.array([quest3_action[3], quest3_action[4], quest3_action[5], quest3_action[0], quest3_action[1], quest3_action[2], quest3_action[6]])
+        else:
+            quest3_action = np.array([quest3_action[3], quest3_action[4], quest3_action[5], quest3_action[0], quest3_action[1], quest3_action[2]])
+        
+        # 自定义button_a的作用
+        if button_a == 1:
+            return np.zeros(7)
+        
+        return quest3_action
+
+    def step(self, action):
+        new_action = self.action(action)
+        # print(f"new action: {new_action}")
+        obs, rew, done, truncated, info = self.env.step(new_action)
+        info["intervene_action"] = new_action
+        # info["left"] = self.left.any()
+        # info["right"] = self.right.any()
+        return obs, rew, done, truncated, info
 
 class SpacemouseIntervention(gym.ActionWrapper):
     def __init__(self, env, gripper_action_span=3):

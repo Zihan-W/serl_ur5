@@ -9,7 +9,7 @@ import threading
 from pynput import keyboard
 
 from ur_env.envs.relative_env import RelativeFrame
-from ur_env.envs.wrappers import SpacemouseIntervention, Quat2MrpWrapper, ObservationRotationWrapper
+from ur_env.envs.wrappers import SpacemouseIntervention, Quat2MrpWrapper, ObservationRotationWrapper, Quest3Wrapper
 
 from serl_launcher.wrappers.serl_obs_wrappers import SERLObsWrapper, ScaleObservationWrapper
 from serl_launcher.wrappers.chunking import ChunkingWrapper
@@ -36,7 +36,8 @@ if __name__ == "__main__":
                    camera_mode="pointcloud",
                    max_episode_length=100,
                    )
-    env = SpacemouseIntervention(env)
+    env = Quest3Wrapper(env)
+    # env = SpacemouseIntervention(env)
     env = RelativeFrame(env)
     env = Quat2MrpWrapper(env)
     env = ScaleObservationWrapper(env)
@@ -76,6 +77,7 @@ if __name__ == "__main__":
 
             next_obs, rew, done, truncated, info = env.step(action=np.zeros((7,)))
             actions = info["intervene_action"]
+            # print(f"get_actions: {actions}")
 
             transition = copy.deepcopy(
                 dict(
