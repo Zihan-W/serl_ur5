@@ -115,6 +115,7 @@ class UrImpedanceController(threading.Thread):
             # 使用serial 
             self.serial_gripper = SerialGripper()
             self.serial_gripper.port_open_recv()
+            self.serial_gripper.gripper_open()
 
 
         if self.verbose:
@@ -373,7 +374,7 @@ class UrImpedanceController(threading.Thread):
     async def run_async(self):
         await self.start_ur_interfaces(gripper=True)
 
-        # self.ur_control.forceModeSetDamping(self.fm_damping)  # less damping = Faster
+        self.ur_control.forceModeSetDamping(self.fm_damping)  # less damping = Faster
 
         try:
             dt = 1. / self.frequency
@@ -400,6 +401,16 @@ class UrImpedanceController(threading.Thread):
                 # only used for plotting
                 if self.do_plot:
                     self.plot()
+
+
+                # target_pos = self.get_target_pos(copy=True)
+                # t_start = self.ur_control.initPeriod()
+                # print("target",target_pos)
+                # moveL_success = self.ur_control.moveL(target_pos, speed=0.5, acceleration=0.3)
+                # print("target_pose",target_pos, "moveL_success", moveL_success)
+                # if not moveL_success:
+                #     await self.restart_ur_interface()
+                #     await self._go_to_reset_pose()
 
                 # calculate force
                 force = self._calculate_force()
@@ -435,7 +446,7 @@ class UrImpedanceController(threading.Thread):
             if self.verbose:
                 print(f"[RTDEPositionalController] >dt: {self.err}     <dt (good): {self.noerr}")
             # mandatory cleanup
-            # self.ur_control.forceModeStop()
+            self.ur_control.forceModeStop()
 
             # release gripper
             if self.serial_gripper:

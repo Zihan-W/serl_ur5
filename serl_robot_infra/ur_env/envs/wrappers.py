@@ -18,22 +18,25 @@ class Quest3Wrapper(gym.ActionWrapper):
         super().__init__(env)
         self.gripper_enabled = True
         self.controller = self.env.controller
-        self.socket_server = SocketServer(self.controller.start_pos, ip_port=('169.254.91.200', 34567))
+        self.socket_server = SocketServer(self.controller.start_pos, ip_port=('169.254.91.200', 34566))
         # context = zmq.Context()
         # self.sock = context.socket(zmq.PULL)
         # self.sock.connect(f"tcp://{169.254.91.216}:{34566}")
     
     def action(self, action) -> np.ndarray:
         quest3_action, button_x, button_a = self.socket_server.get_action()
+        
+        # x,y,z,roll,pitch,yaw,gripper
         if self.gripper_enabled:
             quest3_action = np.array([quest3_action[3], quest3_action[4], quest3_action[5], quest3_action[0], quest3_action[1], quest3_action[2], quest3_action[6]])
         else:
             quest3_action = np.array([quest3_action[3], quest3_action[4], quest3_action[5], quest3_action[0], quest3_action[1], quest3_action[2]])
         
-        # 自定义button_a的作用
+        # 自定义button_a为复位
         if button_a == 1:
-            return np.zeros(7)
+            return np.array([self.controller.start_pos[0], self.controller.start_pos[1], self.controller.start_pos[2], self.controller.start_pos[3], self.controller.start_pos[4], self.controller.start_pos[5], 0])
         
+        print("Quest3Wrapper", quest3_action)
         return quest3_action
 
     def step(self, action):

@@ -11,7 +11,7 @@ class SocketServer:
         self.server, self.sk, self.addr = self.setup()
         self.running = True
         self.latest_data = {"action": np.zeros(14), "button_x": 0, "button_a": 0}  # 用于存储最新的动作数据
-        self.thread = threading.Thread(target=lambda: self.socket_to_action(start_pose))
+        self.thread = threading.Thread(target=self.socket_to_action, args=(start_pose,))
         self.thread.start()
 
     def setup(self):
@@ -41,27 +41,22 @@ class SocketServer:
         self.server.close()
 
     def socket_to_action(self, start_pose):
-        print("start_pose:",start_pose)
         offset = self.calibrate_dual_arx(start_pose)  # 校准
         actions = []  # 用于保存动作数据
+        print("Quest3 start_pose:", start_pose, "offset:", offset)
 
         while self.running:  # 遍历时间步
             t0 = time.time()
             # 从 socket 获取数据并转换为动作
             action, button_x, button_a = self.get_master_action_arx(offset)
 
-
-
             # 更新最新的动作数据
             self.latest_data["action"] = action
             self.latest_data["button_x"] = button_x
             self.latest_data["button_a"] = button_a
 
-            if not hasattr(self, 'offset_printed'):
-                print("offset:", offset)
-                self.offset_printed = True
-                # 输出动作和相关信息
-            # print(f", Action: {action[3:6]}, Button_X: {button_x}, Button_A: {button_a}")
+            # 输出动作和相关信息
+            # print(f"Socket_Server, Action: {action[3:6]}, Button_X: {button_x}, Button_A: {button_a}")
 
             actions.append(action)  # 保存动作数据
 
@@ -72,7 +67,7 @@ class SocketServer:
                 break
 
             # 控制循环的时间步间隔
-            time.sleep(max(0, (1 / 60) - (time.time() - t0)))  # 假设目标 FPS 为 60
+            time.sleep(max(0, (1 / 10) - (time.time() - t0)))  # 假设目标 FPS 为 10
 
         print("Data collection completed.")
 

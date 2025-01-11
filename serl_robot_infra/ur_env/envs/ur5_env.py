@@ -294,6 +294,7 @@ class UR5Env(gym.Env):
         return cost_infos
 
     def step(self, action: np.ndarray) -> tuple:
+        print("UR5_step")
         """standard gym step function."""
         start_time = time.time()
         action = np.clip(action, self.action_space.low, self.action_space.high)
@@ -315,6 +316,47 @@ class UR5Env(gym.Env):
         gripper_action = action[6] * self.action_scale[2]
 
         safe_pos = self.clip_safety_box(next_pos)
+
+        ####
+        import pandas as pd
+        import os
+
+        # 定义文件路径（相对路径）
+        file_path = 'examples/box_picking_drq/action_data.csv'
+
+        # 创建一个数据字典
+        data = {
+            'action_0': action[0],
+            'action_1': action[1],
+            'action_2': action[2],
+            'action_3': action[3],
+            'action_4': action[4],
+            'action_5': action[5],
+            'next_pos_0': next_pos[0],
+            'next_pos_1': next_pos[1],
+            'next_pos_2': next_pos[2],
+            'next_pos_3': next_pos[3],
+            'next_pos_4': next_pos[4],
+            'next_pos_5': next_pos[5],
+            'gripper_action': gripper_action,
+            'safe_pos_0': safe_pos[0],
+            'safe_pos_1': safe_pos[1],
+            'safe_pos_2': safe_pos[2],
+            'safe_pos_3': safe_pos[3],
+            'safe_pos_4': safe_pos[4],
+            'safe_pos_5': safe_pos[5],
+        }
+
+        # 将数据转换为DataFrame
+        df = pd.DataFrame(data, index=[0])  # 添加索引以确保每次写入都是新的一行
+
+        # 如果文件不存在，写入表头
+        if not os.path.isfile(file_path):
+            df.to_csv(file_path, mode='w', header=True, index=False)
+        else:  # 如果文件存在，追加数据
+            df.to_csv(file_path, mode='a', header=False, index=False)
+        ####
+
         self._send_pos_command(safe_pos)
         self._send_gripper_command(gripper_action)
 

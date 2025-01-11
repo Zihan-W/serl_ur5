@@ -44,7 +44,6 @@ if __name__ == "__main__":
     # env = ObservationRotationWrapper(env)       # if it should be enabled
     env = SERLObsWrapper(env)
     env = ChunkingWrapper(env, obs_horizon=1, act_exec_horizon=None)
-
     obs, _ = env.reset()
 
     transitions = []
@@ -52,7 +51,7 @@ if __name__ == "__main__":
     success_needed = 20
     total_count = 0
     pbar = tqdm(total=success_needed)
-
+    print("222")
     info_dict = {'state': env.unwrapped.curr_pos, 'gripper_state': env.unwrapped.gripper_state,
                  'force': env.unwrapped.curr_force, 'reset_pose': env.unwrapped.curr_reset_pose}
     listener_1 = keyboard.Listener(daemon=True, on_press=lambda event: on_space(event, info_dict=info_dict))
@@ -60,17 +59,18 @@ if __name__ == "__main__":
 
     listener_2 = keyboard.Listener(on_press=on_esc, daemon=True)
     listener_2.start()
-
+    print("333")
     uuid = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     file_name = f"box_picking_{success_needed}_demos_{uuid}.pkl"
     file_dir = os.path.dirname(os.path.realpath(__file__))  # same dir as this script
     file_path = os.path.join(file_dir, file_name)
-
+    print("444")
     if not os.access(file_dir, os.W_OK):
         raise PermissionError(f"No permission to write to {file_dir}")
-
+    print("555")
     try:
         running_reward = 0.
+        print("Record demo start!")
         while success_count < success_needed:
             if exit_program.is_set():
                 raise KeyboardInterrupt  # stop program, but clean up before

@@ -103,6 +103,6 @@ if __name__ == '__main__':
     gripper.port_open_recv(1)
 
     ###完全张开
-    # gripper.gripper_control(1)
+    gripper.gripper_control(1)
     ###完全关闭
     # gripper.gripper_control(0)
