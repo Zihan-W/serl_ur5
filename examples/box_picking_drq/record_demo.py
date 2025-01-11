@@ -54,7 +54,8 @@ if __name__ == "__main__":
     print("222")
     info_dict = {'state': env.unwrapped.curr_pos, 'gripper_state': env.unwrapped.gripper_state,
                  'force': env.unwrapped.curr_force, 'reset_pose': env.unwrapped.curr_reset_pose}
-    listener_1 = keyboard.Listener(daemon=True, on_press=lambda event: on_space(event, info_dict=info_dict))
+    listener_1 = keyboard.Listener(daemon=True, on_press=lambda event
+    : on_space(event, info_dict=info_dict))
     listener_1.start()
 
     listener_2 = keyboard.Listener(on_press=on_esc, daemon=True)

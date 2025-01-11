@@ -44,9 +44,16 @@ def test_ur5_receive(robot_ip):
     rtde_r = RTDEReceiveInterface(robot_ip)
     actual_q = rtde_r.getActualQ()
     actual_tcp_pose = rtde_r.getActualTCPPose()
-    print(actual_q)
-    print(actual_tcp_pose)
+    roll, pitch, yaw = actual_tcp_pose[3], actual_tcp_pose[4], actual_tcp_pose[5]
+    qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+    qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+    qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
+    qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
+    actual_tcp_pose[3:] = [qx, qy, qz, qw]  # 更新为四元数
+    print("actual_q",actual_q)
+    print("actual_tcp_pose",actual_tcp_pose)
 
 if __name__ == "__main__":
     robot_ip = "192.168.1.101"
     test_ur5_control(robot_ip)
+    test_ur5_receive(robot_ip)

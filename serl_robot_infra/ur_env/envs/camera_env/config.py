@@ -75,7 +75,7 @@ class UR5CameraConfigFinal(DefaultEnvConfig):  # config for 10 boxes
     RANDOM_RESET = True
     RANDOM_XY_RANGE = (0.0,)
     RANDOM_ROT_RANGE = (0.04,)
-    ABS_POSE_LIMIT_HIGH = np.array([0.3, 0.3, 0.40, 0.05, 0.05, 0.2])
+    ABS_POSE_LIMIT_HIGH = np.array([-0.235, 0.3, 0.50, 0.05, 0.05, 0.2])
     ABS_POSE_LIMIT_LOW = np.array([-0.7, -0.7, 0.04, -0.05, -0.05, -0.2])
     ABS_POSE_RANGE_LIMITS = np.array([0.06, 0.06])
     ACTION_SCALE = np.array([1.0, 1.0, 1.], dtype=np.float32)

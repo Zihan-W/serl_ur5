@@ -326,7 +326,9 @@ class UrImpedanceController(threading.Thread):
             self.stop()
 
     async def _go_to_reset_pose(self):
+        print("_go_to_reset_pose")
         self.ur_control.forceModeStop()
+        print("forceModeStop")
 
         # first disable vaccum gripper
         if self.serial_gripper:
@@ -373,8 +375,7 @@ class UrImpedanceController(threading.Thread):
 
     async def run_async(self):
         await self.start_ur_interfaces(gripper=True)
-
-        self.ur_control.forceModeSetDamping(self.fm_damping)  # less damping = Faster
+        # self.ur_control.forceModeSetDamping(self.fm_damping)  # less damping = Faster
 
         try:
             dt = 1. / self.frequency
@@ -389,7 +390,9 @@ class UrImpedanceController(threading.Thread):
             while not self.stopped():
                 if self._reset.is_set():
                     await self._update_robot_state()
+                    print("await self._update_robot_state()")
                     await self._go_to_reset_pose()
+                    print("await self._go_to_reset_pose()")
 
                 # exit()
                 t_now = time.monotonic()
@@ -402,33 +405,32 @@ class UrImpedanceController(threading.Thread):
                 if self.do_plot:
                     self.plot()
 
-
-                # target_pos = self.get_target_pos(copy=True)
-                # t_start = self.ur_control.initPeriod()
-                # print("target",target_pos)
-                # moveL_success = self.ur_control.moveL(target_pos, speed=0.5, acceleration=0.3)
-                # print("target_pose",target_pos, "moveL_success", moveL_success)
-                # if not moveL_success:
-                #     await self.restart_ur_interface()
-                #     await self._go_to_reset_pose()
-
-                # calculate force
-                force = self._calculate_force()
-                # print(self.target_pos, self.curr_pos, force)
-                # self.print(f" p:{self.curr_pos}   f:{self.curr_force_lowpass}   gr:{self.gripper_state}")  # log to file
-
-                # send command to robot
+                _target_pos = self.get_target_pos(copy=True)
+                _target_pos = pose2rotvec(_target_pos)
                 t_start = self.ur_control.initPeriod()
-                fm_successful = self.ur_control.forceMode(
-                    self.fm_task_frame,
-                    self.fm_selection_vector,
-                    force,
-                    2,
-                    self.fm_limits
-                )
-                if not fm_successful:  # truncate if the robot ends up in a singularity
+                moveL_success=self.ur_control.moveL(_target_pos, speed=0.3, acceleration=0.3)
+                # print("target_pose",_target_pos, "moveL_success", moveL_success)
+                if not moveL_success:
                     await self.restart_ur_interface()
                     await self._go_to_reset_pose()
+
+                # # calculate force
+                # force = self._calculate_force()
+                # # print(self.target_pos, self.curr_pos, force)
+                # # self.print(f" p:{self.curr_pos}   f:{self.curr_force_lowpass}   gr:{self.gripper_state}")  # log to file
+
+                # # send command to robot
+                # t_start = self.ur_control.initPeriod()
+                # fm_successful = self.ur_control.forceMode(
+                #     self.fm_task_frame,
+                #     self.fm_selection_vector,
+                #     force,
+                #     2,
+                #     self.fm_limits
+                # )
+                # if not fm_successful:  # truncate if the robot ends up in a singularity
+                #     await self.restart_ur_interface()
+                #     await self._go_to_reset_pose()
                 
                 if self.serial_gripper:
                     # await self.send_gripper_command()

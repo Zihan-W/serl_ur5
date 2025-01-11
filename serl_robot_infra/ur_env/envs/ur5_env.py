@@ -271,7 +271,7 @@ class UR5Env(gym.Env):
                 self.calibration_thread = CalibrationTread(pc_fusion=self.pointcloud_fusion, verbose=True)
                 self.calibration_thread.start()
 
-                self.calibrate_pointcloud_fusion(visualize=True)
+                self.calibrate_pointcloud_fusion(visualize=False)
 
     def clip_safety_box(self, next_pos: np.ndarray) -> np.ndarray:
         """Clip the pose to be within the safety box."""
@@ -294,7 +294,6 @@ class UR5Env(gym.Env):
         return cost_infos
 
     def step(self, action: np.ndarray) -> tuple:
-        print("UR5_step")
         """standard gym step function."""
         start_time = time.time()
         action = np.clip(action, self.action_space.low, self.action_space.high)
@@ -338,6 +337,7 @@ class UR5Env(gym.Env):
             'next_pos_3': next_pos[3],
             'next_pos_4': next_pos[4],
             'next_pos_5': next_pos[5],
+            'next_pos_6': next_pos[6],
             'gripper_action': gripper_action,
             'safe_pos_0': safe_pos[0],
             'safe_pos_1': safe_pos[1],
@@ -345,6 +345,7 @@ class UR5Env(gym.Env):
             'safe_pos_3': safe_pos[3],
             'safe_pos_4': safe_pos[4],
             'safe_pos_5': safe_pos[5],
+            'safe_pos_6': safe_pos[6],
         }
 
         # 将数据转换为DataFrame
@@ -618,7 +619,7 @@ class UR5Env(gym.Env):
 
         return images
 
-    def calibrate_pointcloud_fusion(self, save=True, visualize=False, num_samples=20):
+    def calibrate_pointcloud_fusion(self, save=True, visualize=False, num_samples=16):
         self.reset()
         import open3d as o3d
 
@@ -630,7 +631,7 @@ class UR5Env(gym.Env):
         pc = o3d.geometry.PointCloud()
         fused = self.pointcloud_fusion.fuse_pointclouds(voxelize=False, cropped=False)
         pc.points = o3d.utility.Vector3dVector(fused)
-        o3d.visualization.draw_geometries([pc])
+        # o3d.visualization.draw_geometries([pc])
 
 
         # # 定义固定的四个动作
@@ -643,10 +644,10 @@ class UR5Env(gym.Env):
 
         # 定义固定的四个动作
         fixed_actions = [
-            [-0.1,  -0.1, 0.0, 0.0, 0.0, 1.0, 0.0],  # 第一个点
-            [0.1, 0.1, 0.0, 0.0, 0.0, 1.0, 0.0],  # 第二个点
-            [-0.1, -0.1, 0.0, 0.0, 0.0, 1.0, 0.0],  # 第三个点
-            [ 0.1,  0.1, 0.0, 0.0, 0.0, 1.0, 0.0],  # 第四个点
+            [-0.25, -0.2, 0.334, -0.178, 0.681, 0.699, 0.123],  # 第一个点
+            [-0.45, -0.2, 0.334, -0.178, 0.681, 0.699, 0.123],  # 第二个点
+            [-0.45, -0.6, 0.334, -0.178, 0.681, 0.699, 0.123],  # 第三个点
+            [-0.25, -0.6, 0.334, -0.178, 0.681, 0.699, 0.123],  # 第四个点
         ]
 
         for i in range(num_samples):
@@ -655,7 +656,7 @@ class UR5Env(gym.Env):
             
             # 执行动作，采集点云
             obs, reward, done, truncated, _ = self.step(np.array(action))
-            time.sleep(0.1)  # 延迟，用于稳定动作和采样
+            time.sleep(5)  # 延迟，用于稳定动作和采样
 
             # 保存采集到的点云数据到标定队列
             self.calibration_thread.append_backlog(*self.pointcloud_fusion.get_original_pcds())
