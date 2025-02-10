@@ -91,8 +91,8 @@ class UR5CameraConfigFinal(DefaultEnvConfig):  # config for 10 boxes
 
     REALSENSE_CAMERAS = {
         "wrist": "238222074511",
-        "wrist_2": "233522078106"
-        # "wrist_2": "241222062741"
+        # "wrist_2": "233522078106"
+        "wrist_2": "241222062741"
     }
 
 class UR5CameraConfigDemo(UR5CameraConfigFinal):

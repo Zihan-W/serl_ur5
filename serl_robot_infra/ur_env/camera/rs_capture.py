@@ -14,6 +14,7 @@ class RSCapture:
         # print(self.get_device_serial_numbers())
         assert serial_number in self.get_device_serial_numbers()
         self.serial_number = serial_number
+        print(self.serial_number)
         self.rgb = rgb
         self.depth = depth
         self.pointcloud = pointcloud
@@ -38,7 +39,7 @@ class RSCapture:
 
         if self.pointcloud:
             self.pc = rs.pointcloud()
-            self.threshold_filter = rs.threshold_filter(min_dist=0., max_dist=0.25)
+            self.threshold_filter = rs.threshold_filter(min_dist=0., max_dist=1)
             self.decimation_filter = rs.decimation_filter(magnitude=2.)  # 2 or 4
             self.temporal_filter = rs.temporal_filter(smooth_alpha=0.53, smooth_delta=24.,
                                                       persistence_control=2)  # standard values
@@ -85,7 +86,9 @@ class RSCapture:
 
         if self.pointcloud:
             depth_frame = self.decimation_filter.process(frames.get_depth_frame())
+
             depth_frame = self.threshold_filter.process(depth_frame)
+
             depth_frame = self.temporal_filter.process(depth_frame)
             if depth_frame.is_depth_frame():
                 points = self.pc.calculate(depth_frame)

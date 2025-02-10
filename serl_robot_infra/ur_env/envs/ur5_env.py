@@ -628,8 +628,8 @@ class UR5Env(gym.Env):
         # calibrate pc fusion here
 
         obs, reward, done, truncated, _ = self.step(np.zeros((7,)))
-        pc = o3d.geometry.PointCloud()
         fused = self.pointcloud_fusion.fuse_pointclouds(voxelize=False, cropped=False)
+        pc = o3d.geometry.PointCloud()
         pc.points = o3d.utility.Vector3dVector(fused)
         # o3d.visualization.draw_geometries([pc])
 

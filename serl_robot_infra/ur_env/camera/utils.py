@@ -24,8 +24,8 @@ def finetune_pointcloud_fusion(pc1: np.ndarray, pc2: np.ndarray):
             icp.transformation)
         return transformation_icp, information_icp
 
-    with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Error) as cm:
-        transformation, info = pairwise_registration(pcd1, pcd2, max_correspondence_distance=1e-3)
+    with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Info) as cm:
+        transformation, info = pairwise_registration(pcd1, pcd2, max_correspondence_distance=0.02)
 
     r = R.from_matrix(transformation[:3, :3].copy()).as_euler("xyz")
     t = transformation[:3, 3].copy().flatten()
