@@ -72,16 +72,20 @@ class UR5CameraConfigFinal(DefaultEnvConfig):  # config for 10 boxes
     RESET_Q = np.array([0.5428823828697205, -1.9081628958331507, 1.6074042320251465,
                           -1.2644203344928187, -1.6236584822284144, 1.3247456550598145])
     
-    RANDOM_RESET = True
+    RANDOM_RESET = False
     RANDOM_XY_RANGE = (0.0,)
-    RANDOM_ROT_RANGE = (0.04,)
-    ABS_POSE_LIMIT_HIGH = np.array([-0.235, 0.3, 0.50, 0.05, 0.05, 0.2])
-    ABS_POSE_LIMIT_LOW = np.array([-0.7, -0.7, 0.04, -0.05, -0.05, -0.2])
-    ABS_POSE_RANGE_LIMITS = np.array([0.06, 0.06])
+    RANDOM_ROT_RANGE = (0.0,)
+    # ABS_POSE_LIMIT_HIGH = np.array([-0.235, 0.3, 0.30, 3.20, 0.05, -2.0])
+    # ABS_POSE_LIMIT_LOW = np.array([-0.7, -0.7, 0.04, 3.10, -0.05, -2.1])
+    # ABS_POSE_LIMIT_HIGH = np.array([-0.15, -0.15, 0.30, -1.57, 2.72, 0.08])   #xyz+旋转矢量
+    # ABS_POSE_LIMIT_LOW = np.array([-0.35, -0.35, 0.04-0.23, -1.58, 2.71, 0.07])
+    ABS_POSE_LIMIT_HIGH = np.array([-0.15, -0.15, 0.30, 0, 0, 0])   #xyz+旋转矢量
+    ABS_POSE_LIMIT_LOW = np.array([-0.35, -0.35, 0.0, 0, 0, 0])
+    ABS_POSE_RANGE_LIMITS = np.array([0.03, 0.03])
     ACTION_SCALE = np.array([1.0, 1.0, 1.], dtype=np.float32)
 
     ROBOT_IP: str = "192.168.1.101"
-    CONTROLLER_HZ = 100
+    CONTROLLER_HZ = 5
     GRIPPER_TIMEOUT = 2000  # in milliseconds
     ERROR_DELTA: float = 0.05
     FORCEMODE_DAMPING: float = 0.02  # faster but more vulnerable to crash...

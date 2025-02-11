@@ -125,10 +125,10 @@ class UR5Env(gym.Env):
         self.config = config
 
         self.resetQ = config.RESET_Q
-        self.curr_reset_pose = np.zeros((7,), dtype=np.float32)
+        self.curr_reset_pose = np.zeros((6,), dtype=np.float32)
 
-        self.start_pos = np.zeros((7,), dtype=np.float32)
-        self.curr_pos = np.zeros((7,), dtype=np.float32)
+        self.start_pos = np.zeros((6,), dtype=np.float32)
+        self.curr_pos = np.zeros((6,), dtype=np.float32)
         self.curr_vel = np.zeros((6,), dtype=np.float32)
         self.curr_Q = np.zeros((6,), dtype=np.float32)
         self.curr_Qd = np.zeros((6,), dtype=np.float32)
@@ -278,11 +278,11 @@ class UR5Env(gym.Env):
         next_pos[:3] = np.clip(
             next_pos[:3], self.xyz_bounding_box.low, self.xyz_bounding_box.high
         )
-        orientation_diff = (R.from_quat(next_pos[3:]) * R.from_quat(self.curr_reset_pose[3:]).inv()).as_mrp()
-        orientation_diff = np.clip(
-            orientation_diff, self.mrp_bounding_box.low, self.mrp_bounding_box.high
-        )
-        next_pos[3:] = (R.from_mrp(orientation_diff) * R.from_quat(self.curr_reset_pose[3:])).as_quat()
+        # orientation_diff = (R.from_mrp(next_pos[3:]) * R.from_mrp(self.curr_reset_pose[3:]).inv()).as_mrp()
+        # orientation_diff = np.clip(
+        #     orientation_diff, self.mrp_bounding_box.low, self.mrp_bounding_box.high
+        # )
+        # next_pos[3:] = (R.from_mrp(orientation_diff) * R.from_mrp(self.curr_reset_pose[3:])).as_mrp()
 
         return next_pos
 
@@ -298,21 +298,21 @@ class UR5Env(gym.Env):
         start_time = time.time()
         action = np.clip(action, self.action_space.low, self.action_space.high)
 
+        next_pos = np.array([action[0], action[1], action[2]*2, -1.5797232214753996, 2.712291774753768, 0.07696365224069243])
         # position
-        next_pos = self.curr_pos.copy()
+        # next_pos = self.curr_pos.copy()
 
-        # next_pos[:3] = next_pos[:3] + action[:3] * self.action_scale[0]
+        # next_pos[:3] = next_pos[:3] + np.array([action[0] * 0.1, action[1] * 0.1, action[2]])
         # next_pos[3:] = (
         #         R.from_mrp(action[3:6] * self.action_scale[1] / 4.) * R.from_quat(next_pos[3:])
         # ).as_quat()             # c * r  --> applies c after r
         
-        next_pos[:3] = action[:3] * self.action_scale[0]
-        next_pos[3:] = (
-                R.from_mrp(action[3:6] * self.action_scale[1] / 4.) * R.from_quat(next_pos[3:])
-        ).as_quat()             # c * r  --> applies c after r
-        print("next_pose:",next_pos)
+        # next_pos[:3] = action[:3] * self.action_scale[0]
+        # next_pos[3:] = (
+        #         R.from_mrp(action[3:6] * self.action_scale[1] / 4.) * R.from_quat(next_pos[3:])
+        # ).as_quat()             # c * r  --> applies c after r
 
-        gripper_action = action[6] * self.action_scale[2]
+        gripper_action = action[6] * 1
 
         safe_pos = self.clip_safety_box(next_pos)
 
@@ -331,13 +331,13 @@ class UR5Env(gym.Env):
             'action_3': action[3],
             'action_4': action[4],
             'action_5': action[5],
+            'action_6': action[6],
             'next_pos_0': next_pos[0],
             'next_pos_1': next_pos[1],
             'next_pos_2': next_pos[2],
             'next_pos_3': next_pos[3],
             'next_pos_4': next_pos[4],
             'next_pos_5': next_pos[5],
-            'next_pos_6': next_pos[6],
             'gripper_action': gripper_action,
             'safe_pos_0': safe_pos[0],
             'safe_pos_1': safe_pos[1],
@@ -345,7 +345,6 @@ class UR5Env(gym.Env):
             'safe_pos_3': safe_pos[3],
             'safe_pos_4': safe_pos[4],
             'safe_pos_5': safe_pos[5],
-            'safe_pos_6': safe_pos[6],
         }
 
         # 将数据转换为DataFrame
@@ -418,11 +417,11 @@ class UR5Env(gym.Env):
             reset_shift = np.random.uniform(np.negative(self.random_xy_range), self.random_xy_range, (2,))
             reset_pose[:2] += reset_shift
 
-            if self.random_rot_range[0] > 0.:
-                random_rot = np.random.triangular(np.negative(self.random_rot_range), 0., self.random_rot_range, size=(3,))
-            else:
-                random_rot = np.zeros((3,))
-            reset_pose[3:][:] = (R.from_quat(reset_pose[3:]) * R.from_mrp(random_rot)).as_quat()
+            # if self.random_rot_range[0] > 0.:
+            #     random_rot = np.random.triangular(np.negative(self.random_rot_range), 0., self.random_rot_range, size=(3,))
+            # else:
+            #     random_rot = np.zeros((3,))
+            # reset_pose[3:][:] = (R.from_quat(reset_pose[3:]) * R.from_mrp(random_rot)).as_quat()
 
             self.curr_reset_pose[:] = reset_pose
 

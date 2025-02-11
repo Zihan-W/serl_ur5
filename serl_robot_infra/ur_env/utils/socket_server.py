@@ -85,7 +85,7 @@ class SocketServer:
         y = -action[3]
         z = action[4]
         gripper = action[6] # 0-1, 0: 按下按键, 1: 松开按键
-
+        print("gripper:",gripper)
         roll1 = -action[9]
         pitch1 = -action[7]
         yaw1 = action[8]

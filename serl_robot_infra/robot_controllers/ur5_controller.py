@@ -54,9 +54,9 @@ class UrImpedanceController(threading.Thread):
         self.do_plot = False
 
         self.start_pos = np.zeros((6,), dtype=np.float32)
-        self.target_pos = np.zeros((7,), dtype=np.float32)  # new as quat to avoid +- problems with axis angle repr.
+        self.target_pos = np.zeros((6,), dtype=np.float32)  # new as quat to avoid +- problems with axis angle repr.
         self.target_grip = np.zeros((1,), dtype=np.float32)
-        self.curr_pos = np.zeros((7,), dtype=np.float32)
+        self.curr_pos = np.zeros((6,), dtype=np.float32)
         self.curr_vel = np.zeros((6,), dtype=np.float32)
         self.gripper_state = np.zeros((2,), dtype=np.float32)
         self.curr_Q = np.zeros((6,), dtype=np.float32)
@@ -156,7 +156,7 @@ class UrImpedanceController(threading.Thread):
         if target_pos.shape == (7,):
             target_orientation = target_pos[3:]
         elif target_pos.shape == (6,):
-            target_orientation = rotvec_2_quat(target_pos[3:])
+            target_orientation = target_pos[3:]
         else:
             raise ValueError(f"[RIC] target pos has shape {target_pos.shape}")
 
@@ -206,7 +206,8 @@ class UrImpedanceController(threading.Thread):
         angle_pct = self.serial_gripper.get_current_angle_pct()
 
         with self.lock:
-            self.curr_pos[:] = pose2quat(pos)
+            # self.curr_pos[:] = pose2quat(pos)
+            self.curr_pos[:] = pos
             self.curr_vel[:] = vel
             self.curr_Q[:] = Q
             self.curr_Qd[:] = Qd
@@ -381,7 +382,7 @@ class UrImpedanceController(threading.Thread):
             dt = 1. / self.frequency
             self.ur_control.zeroFtSensor()
             await self._update_robot_state()
-            self.start_pos = pose2rotvec(self.curr_pos.copy())
+            self.start_pos = self.curr_pos.copy()
             self.target_pos = self.curr_pos.copy()
             print(f"[RIC] target position set to curr pos: {self.target_pos}")
 
@@ -406,7 +407,7 @@ class UrImpedanceController(threading.Thread):
                     self.plot()
 
                 _target_pos = self.get_target_pos(copy=True)
-                _target_pos = pose2rotvec(_target_pos)
+                _target_pos = _target_pos
                 t_start = self.ur_control.initPeriod()
                 moveL_success=self.ur_control.moveL(_target_pos, speed=0.3, acceleration=0.3)
                 # print("target_pose",_target_pos, "moveL_success", moveL_success)

@@ -15,5 +15,5 @@ python drq_policy.py "$@" \
     --eval_period 20000 \
     --encoder_type voxnet-pretrained \
     --checkpoint_period 2500 \
-    --demo_path /home/nico/real-world-rl/serl/examples/box_picking_drq/box_picking_20_demos_aug9_noFT_1quad.pkl \
+    --demo_path /home/wzh/serl_ur5/examples/box_picking_drq/box_picking_20_demos_2025-02-11_21-21-41.pkl \
 #    --debug

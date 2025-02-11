@@ -28,6 +28,7 @@ def construct_rotation_matrix(tcp_pose):
     Construct the adjoint matrix for a spatial velocity vector
     :args: tcp_pose: (x, y, z, qx, qy, qz, qw)
     """
+    
     return R.from_quat(tcp_pose[3:]).as_matrix()
 
 
