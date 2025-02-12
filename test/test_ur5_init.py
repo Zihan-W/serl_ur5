@@ -44,14 +44,32 @@ def test_ur5_receive(robot_ip):
     rtde_r = RTDEReceiveInterface(robot_ip)
     actual_q = rtde_r.getActualQ()
     actual_tcp_pose = rtde_r.getActualTCPPose()
-    roll, pitch, yaw = actual_tcp_pose[3], actual_tcp_pose[4], actual_tcp_pose[5]
-    qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-    qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-    qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
-    qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
-    actual_tcp_pose[3:] = [qx, qy, qz, qw]  # 更新为四元数
-    print("actual_q",actual_q)
     print("actual_tcp_pose",actual_tcp_pose)
+    roll = np.arctan2(2 * (actual_tcp_pose[5] * actual_tcp_pose[4] + actual_tcp_pose[3] * actual_tcp_pose[6]), 1 - 2 * (actual_tcp_pose[4]**2 + actual_tcp_pose[5]**2))
+    pitch = np.arcsin(2 * (actual_tcp_pose[5] * actual_tcp_pose[4] - actual_tcp_pose[6] * actual_tcp_pose[3]))
+    yaw = np.arctan2(2 * (actual_tcp_pose[5] * actual_tcp_pose[6] + actual_tcp_pose[3] * actual_tcp_pose[4]), 1 - 2 * (actual_tcp_pose[4]**2 + actual_tcp_pose[6]**2))
+    actual_tcp_pose[3:] = [roll, pitch, yaw]  # 更新为rpy
+    print("actual_tcp_pose (rpy)", actual_tcp_pose)
+
+    # roll, pitch, yaw = actual_tcp_pose[3], actual_tcp_pose[4], actual_tcp_pose[5]
+    # qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+    # qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+    # qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
+    # qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
+    # actual_tcp_pose[3:] = [qx, qy, qz, qw]  # 更新为四元数
+    # print("actual_q",actual_q)
+    # print("actual_tcp_pose",actual_tcp_pose)
+    # # 将四元数转换为滚转、俯仰和偏航角（rpy）
+    # qx, qy, qz, qw = actual_tcp_pose[3], actual_tcp_pose[4], actual_tcp_pose[5], actual_tcp_pose[6]
+    # # 计算滚转（roll）
+    # roll = np.arctan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx**2 + qy**2))
+    # # 计算俯仰（pitch）
+    # pitch = np.arcsin(2 * (qw * qy - qz * qx))
+    # # 计算偏航（yaw）
+    # yaw = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy**2 + qz**2))
+
+    # actual_tcp_pose[3:] = [roll, pitch, yaw]  # 更新为rpy
+    # print("actual_tcp_pose (rpy)", actual_tcp_pose)
 
 if __name__ == "__main__":
     robot_ip = "192.168.1.101"

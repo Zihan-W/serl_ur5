@@ -33,7 +33,7 @@ def test_realsense():
         print("数据流启动成功!")
 
         try:
-            while True:
+            for i in range(1000):
                 # 等待新的帧
                 frames = pipeline.wait_for_frames()
                 color_frame = frames.get_color_frame()
