@@ -171,6 +171,9 @@ class UR5Env(gym.Env):
             np.ones((7,), dtype=np.float32) * -1,
             np.ones((7,), dtype=np.float32),
         )
+        # self.action_space = gym.spaces.Box(np.array([-0.35, -0.35, 0.0, -1.58, 2.71, 0.07, 0.]), 
+        #                                     np.array([-0.15, -0.15, 0.3, -1.57, 2.72, 0.08, 0.]), 
+        #                                     shape=self.action_space.shape)
         self.last_action = np.zeros(self.action_space.shape)
 
 
@@ -209,11 +212,14 @@ class UR5Env(gym.Env):
                     -np.inf, np.inf, shape=(7,)
                 ),  # xyz + quat
                 "tcp_vel": gym.spaces.Box(-np.inf, np.inf, shape=(6,)),
-                "gripper_state": gym.spaces.Box(-1., 1., shape=(2,)),
+                "gripper_state": gym.spaces.Box(0., 1., shape=(2,)),
                 "tcp_force": gym.spaces.Box(-np.inf, np.inf, shape=(3,)),
                 "tcp_torque": gym.spaces.Box(-np.inf, np.inf, shape=(3,)),
-                "action": gym.spaces.Box(-1., 1., shape=self.action_space.shape)
-            }
+                # "action": gym.spaces.Box(np.array([-0.35, -0.35, 0.0, -1.58, 2.71, 0.07, 0.]), 
+                #                          np.array([-0.15, -0.15, 0.3, -1.57, 2.72, 0.08, 0.]), 
+                #                          shape=self.action_space.shape)
+                "action":gym.spaces.Box(-1., 1., self.action_space.shape),
+                                        }
         )
 
         obs_space_definition = {"state": state_space}
@@ -297,12 +303,14 @@ class UR5Env(gym.Env):
         """standard gym step function."""
         start_time = time.time()
         action = np.clip(action, self.action_space.low, self.action_space.high)
+        # next_pos = np.array([action[0], action[1], action[2], -1.5797232214753996, 2.712291774753768, 0.07696365224069243])
 
-        next_pos = np.array([action[0], action[1], action[2]*2, -1.5797232214753996, 2.712291774753768, 0.07696365224069243])
         # position
-        # next_pos = self.curr_pos.copy()
+        next_pos = self.curr_pos.copy()
 
-        # next_pos[:3] = next_pos[:3] + np.array([action[0] * 0.1, action[1] * 0.1, action[2]])
+        next_pos[:3] = next_pos[:3] + np.array([action[0] * 0.1, action[1] * 0.1, action[2]*0.1])
+
+        next_pos[3:6] = np.array([-1.5797232214753996, 2.712291774753768, 0.07696365224069243])
         # next_pos[3:] = (
         #         R.from_mrp(action[3:6] * self.action_scale[1] / 4.) * R.from_quat(next_pos[3:])
         # ).as_quat()             # c * r  --> applies c after r
@@ -312,7 +320,7 @@ class UR5Env(gym.Env):
         #         R.from_mrp(action[3:6] * self.action_scale[1] / 4.) * R.from_quat(next_pos[3:])
         # ).as_quat()             # c * r  --> applies c after r
 
-        gripper_action = action[6] * 1
+        gripper_action = np.clip(action[6], 0, 1)
 
         safe_pos = self.clip_safety_box(next_pos)
 
@@ -321,7 +329,7 @@ class UR5Env(gym.Env):
         import os
 
         # 定义文件路径（相对路径）
-        file_path = 'examples/box_picking_drq/action_data.csv'
+        file_path = '/home/wzh/serl_ur5/examples/box_picking_drq/action_data.csv'
 
         # 创建一个数据字典
         data = {
@@ -740,7 +748,9 @@ class UR5Env(gym.Env):
         images = None
         if self.camera_mode is not None:
             images = self.get_image()
-
+        # 将图像设置为0
+        # for key,value in images.items():
+        #     images[key] = np.zeros_like(value)
         self._update_currpos()
         state_observation = {
             "tcp_pose": self.curr_pos,
