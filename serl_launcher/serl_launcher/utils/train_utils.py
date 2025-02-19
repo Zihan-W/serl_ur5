@@ -133,7 +133,7 @@ def load_resnet10_params(agent, image_keys=("image",), public=True):
 
 
 def load_pretrained_VoxNet_params(agent, image_keys=("pointcloud",)):
-    ckpt = jnp.load("/home/nico/Downloads/c-11.npz")
+    ckpt = jnp.load("/home/wzh/serl_ur5/examples/box_picking_drq/c-11.npz")
 
     new_params = agent.state.params
 

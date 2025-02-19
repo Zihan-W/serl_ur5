@@ -163,5 +163,6 @@ class VoxNet(nn.Module):
             x = nn.Dense(self.bottleneck_dim)(x)
             x = nn.LayerNorm()(x)
             x = self.final_activation(x)
-
+        
+        x = jax.lax.stop_gradient(x)  # 冻结所有参数
         return x[0] if no_batch_dim else x

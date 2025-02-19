@@ -43,7 +43,7 @@ class DrQAgent(SACAgent):
                 "learning_rate": 3e-4,  # 3e-4
             },
             critic_optimizer_kwargs={
-                "learning_rate": 3e-4,  # 3e-4
+                "learning_rate": 1e-4,  # 3e-4
             },
             temperature_optimizer_kwargs={
                 "learning_rate": 3e-4,
@@ -267,6 +267,7 @@ class DrQAgent(SACAgent):
                 )
                 for image_key in image_keys
             }
+            # import pdb;pdb.set_trace()
         elif encoder_type.lower() == "none":
             encoders = None
         else:

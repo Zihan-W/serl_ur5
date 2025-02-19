@@ -182,6 +182,8 @@ class SACAgent(flax.struct.PyTreeNode):
         target_qs = target_q[None].repeat(self.config["critic_ensemble_size"], axis=0)
         chex.assert_equal_shape([predicted_qs, target_qs])
         critic_loss = jnp.mean(jnp.sum((predicted_qs - target_qs) ** 2, axis=0))
+        # print("critic_loss:", critic_loss.primal, "数据类型:", type(critic_loss), "数据结构:", critic_loss.shape, "cri",dir(critic_loss))
+        # import ipdb;ipdb.set_trace()
 
         info = {
             "critic_loss": critic_loss,
@@ -282,7 +284,6 @@ class SACAgent(flax.struct.PyTreeNode):
         new_state, info = self.state.apply_loss_fns(
             loss_fns, pmap_axis=pmap_axis, has_aux=True
         )
-
         # Update target network (if requested)
         if "critic" in networks_to_update:
             new_state = new_state.target_update(self.config["soft_target_update_rate"])
@@ -345,8 +346,8 @@ class SACAgent(flax.struct.PyTreeNode):
             "learning_rate": 3e-4,
         },
         # Algorithm config
-        discount: float = 0.95,
-        soft_target_update_rate: float = 0.005,
+        discount: float = 0.98,
+        soft_target_update_rate: float = 0.004,
         target_entropy: Optional[float] = None,
         entropy_per_dim: bool = False,
         backup_entropy: bool = False,

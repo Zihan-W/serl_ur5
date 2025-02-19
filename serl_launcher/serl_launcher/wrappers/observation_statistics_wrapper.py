@@ -45,7 +45,12 @@ class ObservationStatisticsWrapper(gym.Wrapper, gym.utils.RecordConstructorArgs)
         ), f"`info` dtype is {type(infos)} while supported dtype is `dict`. This may be due to usage of other wrappers in the wrong order."
 
         for name, obs in observations["state"].items():
-            self.buffer[name][self.curr_path_length - 1, :] = obs
+            # print(f"self.buffer[{name}]: {self.buffer[name]}, 数据大小: {self.buffer[name].shape}")
+            # print(self.curr_path_length)
+            if self.curr_path_length > 100:
+                self.buffer[name][:100, :] = obs[:100]  # 只存前100个值
+            else:
+                self.buffer[name][self.curr_path_length - 1, :] = obs
 
         dones = np.logical_or(terminations, truncations)
         num_dones = np.sum(dones)

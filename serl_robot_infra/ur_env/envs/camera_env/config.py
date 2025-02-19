@@ -85,7 +85,7 @@ class UR5CameraConfigFinal(DefaultEnvConfig):  # config for 10 boxes
     ACTION_SCALE = np.array([1.0, 1.0, 1.], dtype=np.float32)
 
     ROBOT_IP: str = "192.168.1.101"
-    CONTROLLER_HZ = 5
+    CONTROLLER_HZ = 100
     GRIPPER_TIMEOUT = 2000  # in milliseconds
     ERROR_DELTA: float = 0.05
     FORCEMODE_DAMPING: float = 0.02  # faster but more vulnerable to crash...

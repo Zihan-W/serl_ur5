@@ -90,7 +90,7 @@ flags.DEFINE_integer("steps_per_update", 10, "Number of steps per update the ser
 
 flags.DEFINE_integer("log_period", 10, "Logging period.")
 flags.DEFINE_integer("eval_period", 1000, "Evaluation period in seconds")
-flags.DEFINE_integer("eval_n_trajs", 10, "Number of trajectories for evaluation.")
+flags.DEFINE_integer("eval_n_trajs", 5, "Number of trajectories for evaluation.")
 
 # flag to indicate if this is a leaner or a actor
 flags.DEFINE_boolean("learner", False, "Is this a learner or a trainer.")
@@ -98,10 +98,10 @@ flags.DEFINE_boolean("actor", False, "Is this a learner or a trainer.")
 flags.DEFINE_string("ip", "localhost", "IP address of the learner.")
 flags.DEFINE_string("demo_path", None, "Path to the demo data.")
 flags.DEFINE_integer("checkpoint_period", 0, "Period to save checkpoints.")
-flags.DEFINE_string("checkpoint_path", '/home/nico/real-world-rl/serl/examples/box_picking_drq/checkpoints',
+flags.DEFINE_string("checkpoint_path", '/home/wzh/serl_ur5/examples/box_picking_drq/checkpoints',
                     "Path to save checkpoints.")
 
-flags.DEFINE_integer("eval_checkpoint_step", 0, "evaluate the policy from ckpt at this step")
+flags.DEFINE_integer("eval_checkpoint_step", 3000, "evaluate the policy from ckpt at this step")
 flags.DEFINE_string("log_rlds_path", '/home/nico/real-world-rl/serl/examples/box_picking_drq/rlds',
                     "Path to save RLDS logs.")
 flags.DEFINE_string("preload_rlds_path", None, "Path to preload RLDS data.")
@@ -147,7 +147,6 @@ def actor(agent: DrQAgent, data_store, env, sampling_rng):
     This is the actor loop, which runs when "--actor" is set to True.
     """
     global PAUSE_EVENT_FLAG
-
     if FLAGS.eval_checkpoint_step:
         wandb_logger = make_wandb_logger(
             project="paper_evaluation_unseen" if "eval" in FLAGS.env else "paper_evaluation",
@@ -156,7 +155,6 @@ def actor(agent: DrQAgent, data_store, env, sampling_rng):
         )
         success_counter = 0
         time_list = []
-
         ckpt = checkpoints.restore_checkpoint(
             FLAGS.checkpoint_path,
             agent.state,
@@ -219,6 +217,8 @@ def actor(agent: DrQAgent, data_store, env, sampling_rng):
                     }
                     traj_infos.append(infos)
                     wandb_logger.log(infos, step=episode)
+                    if(reward > 50.):
+                        time.sleep(5)
 
             # if pause event is requested, pause the actor
             if PAUSE_EVENT_FLAG.is_set():
@@ -298,6 +298,24 @@ def actor(agent: DrQAgent, data_store, env, sampling_rng):
 
         # Step environment
         with timer.context("step_env"):
+            import pandas as pd
+
+            # 将动作存储到csv文件
+            import os
+
+            actions_df = {
+                'action_0': actions[0],
+                'action_1': actions[1],
+                'action_2': actions[2],
+                'action_3': actions[3],
+                'action_4': actions[4],
+                'action_5': actions[5],
+                'action_6': actions[6],
+            }
+
+            # 将数据转换为DataFrame
+            actions_df = pd.DataFrame(actions_df, index=[0])  # 添加索引以确保每次写入都是新的一行
+            actions_df.to_csv('actions_log.csv', mode='a', header=not os.path.isfile('actions_log.csv'), index=False)
             next_obs, reward, done, truncated, info = env.step(actions)
 
             # override the action with the intervention action
@@ -321,7 +339,8 @@ def actor(agent: DrQAgent, data_store, env, sampling_rng):
             if done or truncated:
                 stats = {"train": info}  # send stats to the learner to log
                 client.request("send-stats", stats)
-                print(f"running return: {running_return}")
+                import wandb
+                wandb.log({"running_return":running_return})
                 running_return = 0.0
                 obs, _ = env.reset()
 
@@ -427,15 +446,21 @@ def learner(rng, agent: DrQAgent, replay_buffer, wandb_logger=None):
 
             with timer.context("train_critics"):
                 agent, critics_info = agent.update_critics(batch, )
+            # import ipdb;ipdb.set_trace()
+            import csv
+            with open('critic_loss.csv', mode='a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([critics_info['critic']['critic_loss']])
 
         with timer.context("train"):
             batch = next(replay_iterator)
-            agent, update_info = agent.update_high_utd(batch, utd_ratio=1)
 
+            agent, update_info = agent.update_high_utd(batch, utd_ratio=1)
         timer.tock("learner_total")
 
         # publish the updated network
         if step > 0 and step % (FLAGS.steps_per_update) == 0:
+            print("steps_per_update",step)
             agent = jax.block_until_ready(agent)
             server.publish_network(agent.state.params)
 
@@ -445,6 +470,8 @@ def learner(rng, agent: DrQAgent, replay_buffer, wandb_logger=None):
             wandb_logger.log({"replay_buffer_size": len(replay_buffer)})
 
         update_steps += 1
+
+        # import ipdb; ipdb.set_trace()
 
         if FLAGS.checkpoint_period and update_steps % FLAGS.checkpoint_period == 0:
             assert FLAGS.checkpoint_path is not None
@@ -558,7 +585,7 @@ def main(_):
         )
         # set up wandb and logging
         wandb_logger = make_wandb_logger(
-            project="paper_experiments",
+            project="SERL_DEBUG",
             description=FLAGS.exp_name or FLAGS.env,
             debug=FLAGS.debug,
         )
