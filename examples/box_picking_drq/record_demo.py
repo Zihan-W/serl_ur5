@@ -9,10 +9,10 @@ import threading
 from pynput import keyboard
 
 from ur_env.envs.relative_env import RelativeFrame
-from ur_env.envs.wrappers import SpacemouseIntervention, Quat2MrpWrapper, ObservationRotationWrapper, Quest3Wrapper
+from ur_env.envs.wrappers import SpacemouseIntervention, Quat2MrpWrapper, ObservationRotationWrapper, Quest3Wrapper, PlanningWrapper
 
 from serl_launcher.wrappers.serl_obs_wrappers import SERLObsWrapper, ScaleObservationWrapper
-from serl_launcher.wrappers.chunking import ChunkingWrapper
+from serl_launcher.wrappers.chunking import ChunkingWrapper 
 
 import ur_env
 
@@ -36,7 +36,8 @@ if __name__ == "__main__":
                    camera_mode="pointcloud",
                    max_episode_length=100,
                    )
-    env = Quest3Wrapper(env)
+    # env = Quest3Wrapper(env)
+    env = PlanningWrapper(env)
     # env = SpacemouseIntervention(env)
     env = RelativeFrame(env)
     env = Quat2MrpWrapper(env)
