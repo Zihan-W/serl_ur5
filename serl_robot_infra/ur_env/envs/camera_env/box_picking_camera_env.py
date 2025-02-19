@@ -68,10 +68,14 @@ class UR5CameraEnv(UR5Env):
         orientation_cost = max(orientation_cost - 0.005, 0.) * 25.
 
         max_pose_diff = 0.05  # set to 5cm
-        pos_diff = obs["state"]["tcp_pose"][:2] - self.curr_reset_pose[:2]
+        pos_diff = obs["state"]["tcp_pose"][:3] - self.curr_reset_pose[:3]
         position_cost = 10. * np.sum(
             np.where(np.abs(pos_diff) > max_pose_diff, np.abs(pos_diff - np.sign(pos_diff) * max_pose_diff), 0.0)
         )
+        # if action[0]>-0.15 or action[0]<-0.3:
+        #     position_cost += position_cost
+        # if action[1]>-0.15 or action[1]<-0.3:
+        #     position_cost += position_cost
 
         cost_info = dict(
             action_cost=action_cost,
@@ -83,17 +87,26 @@ class UR5CameraEnv(UR5Env):
         )
         for key, info in cost_info.items():
             self.cost_infos[key] = info + (0. if key not in self.cost_infos else self.cost_infos[key])
+        
+        import wandb
+        wandb.init(
+    # set the wandb project where this run will be logged
+            project="SERL_REWARD",
+        )
+        wandb.log({"action_cost": action_cost, "orientation_cost": orientation_cost, "position_cost":position_cost,"action_diff_cost":action_diff_cost})
 
         if self.reached_goal_state(obs):
             self.last_action[:] = 0.
-            return 100. - action_cost - orientation_cost - position_cost - action_diff_cost
+            return 100. - action_cost - orientation_cost - position_cost 
+        # - action_diff_cost
         else:
-            return 0. - action_cost - orientation_cost - position_cost - step_cost - action_diff_cost
+            return 0. - action_cost - orientation_cost - position_cost - step_cost 
+        # - action_diff_cost
 
     def reached_goal_state(self, obs) -> bool:
         target_tcp_xyz = np.array([-0.23172735941287448, -0.2508490564301935, 0.0])
         pos_diff = obs["state"]["tcp_pose"][:3] - target_tcp_xyz[:3]
-        return np.linalg.norm(pos_diff) < 0.05
+        return np.linalg.norm(pos_diff) < 0.03
     
     def close(self):
         super().close()
