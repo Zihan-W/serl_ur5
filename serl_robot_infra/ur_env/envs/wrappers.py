@@ -18,7 +18,8 @@ class Quest3Wrapper(gym.ActionWrapper):
         super().__init__(env)
         self.gripper_enabled = True
         self.controller = self.env.controller
-        self.socket_server = SocketServer(self.controller.start_pos, ip_port=('169.254.91.200', 34567))
+        # self.socket_server = SocketServer(self.controller.start_pos, ip_port=('169.254.91.200', 34567))
+        self.socket_server = SocketServer(self.controller.start_pos, ip_port=('192.168.8.75', 34566))
         # context = zmq.Context()
         # self.sock = context.socket(zmq.PULL)
         # self.sock.connect(f"tcp://{169.254.91.216}:{34566}")
@@ -36,6 +37,25 @@ class Quest3Wrapper(gym.ActionWrapper):
         if button_a == 1:
             return np.array([self.controller.start_pos[0], self.controller.start_pos[1], self.controller.start_pos[2], self.controller.start_pos[3], self.controller.start_pos[4], self.controller.start_pos[5], 0])
         
+        return quest3_action
+
+    def step(self, action):
+        new_action = self.action(action)
+        # print(f"new action: {new_action}")
+        obs, rew, done, truncated, info = self.env.step(new_action)
+        info["intervene_action"] = new_action
+        # info["left"] = self.left.any()
+        # info["right"] = self.right.any()
+        return obs, rew, done, truncated, info
+
+class PlanningWrapper(gym.ActionWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.gripper_enabled = True
+        self.controller = self.env.controller
+    
+    def action(self, action) -> np.ndarray:        
+        quest3_action = np.array([0,0,-1, 0, 0, 0, 0])
         return quest3_action
 
     def step(self, action):
